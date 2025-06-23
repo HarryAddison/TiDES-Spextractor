@@ -1,0 +1,14 @@
+# %ECSV 1.0
+# ---
+# meta:
+#   comment: Strong telluric regions
+#
+# datatype:
+# - {name: feature, datatype: string}
+# - {name: lower_wl, unit: angstrom, datatype: float32}
+# - {name: upper_wl, unit: angstrom, datatype: float32}
+# schema: astropy-2.0
+feature                    lower_wl    upper_wl
+"$\rm{O}_2~\rm{B}$"        6862.1     6964.6
+"$\rm{O}_2~\rm{A}$"         7585.8    7703.0
+"$\rm{H}_2\rm{O}$"          8916.0     9929.8

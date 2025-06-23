@@ -1,0 +1,23 @@
+spextractor/
+venv/
+.git/
+Dust-Maps/
+log/
+
+__pycache__/
+
+
+.python-version
+
+# Development codes not for publishing
+development-codes/
+
+# Data and figure folders
+
+*.pdf
+*.fits
+processed-Spectra/
+Spectral-Properties/
+
+Test
+test
