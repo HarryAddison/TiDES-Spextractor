@@ -49,70 +49,6 @@ def evaluate_continuum(spec):
         return False
 
 
-def calc_best_continuum(specs_to_check, n_cpu=None, **kwargs):
-    # table_sizes = []
-    # for spec in specs_to_check:
-    #     table_sizes.append(estimate_table_size(spec))
-    # available_ram = psutil.virtual_memory().available
-    # print(available_ram, available_ram / 1024**3)
-    # print(np.mean(table_sizes) / 1024**3, max(table_sizes) / 1024**3, min(table_sizes) / 1024**3)
-    # max_cpu = int(available_ram / (2 * np.mean(table_sizes)))
-    if n_cpu is None:
-        n_cpu = 40
-    # elif max_cpu < n_cpu:
-    #     n_cpu = max_cpu
-
-    print(f"Starting continuum finding with {n_cpu} CPUs")
-
-    # # Method 1: Process the continua in decending width to find first valid one.
-    # with ProcessPoolExecutor(max_workers=n_cpu) as executor:
-    #     futures = [executor.submit(evaluate_continuum, spec) for spec in specs_to_check]
-    #     futures_set = set(futures)
-
-    #     while futures_set:
-    #         done_now, _ = wait(futures_set, return_when=FIRST_COMPLETED)
-
-    #         for future in done_now:
-    #             result = future.result()
-    #             if result != None:
-    #                 print("RESULT")
-    #                 for f in futures_set:
-    #                     f.cancel()
-    #                 return result
-    #         futures_set -= done_now  # remove finished futures
-    # return None
-
-    # Method 2: Using dask
-    cluster = LocalCluster(n_workers=n_cpu, memory_limit="auto")
-    client = Client(cluster)
-    print(f"Dask cluster started with {len(client.nthreads())} workers.")
-
-    # Create delayed tasks
-    tasks = [delayed(evaluate_continuum)(spec) for spec in specs_to_check]
-
-    # Compute all tasks in parallel
-    results = compute(*tasks)
-
-    # Find the first valid result
-    for i, result in enumerate(results):
-        if result is True:
-            client.shutdown()
-            print("RESULT\n", result)
-            spec = specs_to_check[i]
-
-            continuum_flux = interpolate_linear([spec["wave"][0], spec["wave"][-1]],
-                                                [spec["flux"][0], spec["flux"][-1]],
-                                                spec["wave"])
-            continuum = QTable({"wave": spec["wave"], "flux": continuum_flux})
-            print(continuum)
-            return continuum
-
-    client.shutdown()
-    return None
-
-
-
-
 def get_continuum(spec, feature, **kwargs):
     '''
     Locate the maxima in the feature's lower bound. Continuum must be fitted
@@ -129,16 +65,12 @@ def get_continuum(spec, feature, **kwargs):
     lower_region_maxima_ind = lower_region_mask_inds[spec["flux"][lower_region_mask].argmax()]
     upper_region_maxima_ind = upper_region_mask_inds[spec["flux"][upper_region_mask].argmax()]
 
-    lower_region_search_inds = np.arange(lower_region_maxima_ind, (lower_region_mask_inds[-1] + 1), 1)
-    upper_region_search_inds = np.arange(upper_region_mask_inds[0], (upper_region_maxima_ind + 1), 1)
-    print("starting generator conversion")
-    specs_to_check = list((spec[lo_ind : up_ind]) for lo_ind in lower_region_search_inds
-                          for up_ind in upper_region_search_inds)
-    print("Sorting")
-    specs_to_check = sorted(specs_to_check, key=lambda tbl: tbl['wave'].max() - tbl['wave'].min(), reverse=True)
-    print("starting calculation of best continuum")
-    continuum = calc_best_continuum(specs_to_check, **kwargs)
-    print("continuum found or not found")
+    spec = spec[lower_region_maxima_ind:upper_region_maxima_ind]
+
+    continuum_flux = interpolate_linear([spec["wave"][0], spec["wave"][-1]],
+                                        [spec["flux"][0], spec["flux"][-1]],
+                                        spec["wave"])
+    continuum = QTable({"wave": spec["wave"], "flux": continuum_flux})
     return continuum
 
 
@@ -151,7 +83,7 @@ def locate_spectral_features(spec, features, **kwargs):
                 features[i]["continuum"] = continuum
             else:
                 features[i]["comment"] = "A valid continuum could not be found"
-                
+
     return features
 
 
