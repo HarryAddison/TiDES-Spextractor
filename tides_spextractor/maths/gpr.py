@@ -28,25 +28,23 @@ def make_model(data):
     x = np.array(data["wave"].value)
     y = np.array(data["flux"].value)
     y_err = np.array(data["flux_err"].value)
+    var = y_err * y_err
 
-    # Using brownian kernel.
-    kernel = GPy.kern.Matern32(1, variance=0.001, lengthscale=1)
+    # Kernel
+    mat32_kern = GPy.kern.Matern32(1, variance=1, lengthscale=5)
+    kernel = mat32_kern
 
-    # Adding noise to kernel using flux errors.
-    var_mat = y_err * y_err * np.eye(len(y_err))
-    kern_err = GPy.kern.Fixed(1, var_mat)
-    kern = kernel + kern_err
-
-    # make the model
-    model = GPy.models.GPRegression(x[:, np.newaxis], y[:, np.newaxis], kern)
-    model["Gaussian.noise.variance"][0] = 0.01
-
-    model[".*fixed.variance"].constrain_fixed()
-    model.Gaussian_noise.fix(1e-6)
+    # make the model and put some contraints on hyper-parameters
+    model = GPy.models.GPHeteroscedasticRegression(x[:, np.newaxis], y[:, np.newaxis], kernel)
+    model['.*het_Gauss.variance'] = var[:, np.newaxis]
+    model['.*het_Gauss.variance'].constrain_bounded(1e-6, 0.2)
+    
+    # Optimise
     model.optimize(optimizer="bfgs")
+    print(model)
 
-    kernel.variance = kern.Mat32.variance
-    kernel.lengthscale = kern.Mat32.lengthscale
+    # obtain the optimised variance and lengthscales
+    print(kernel)
 
     return model, kernel
 
