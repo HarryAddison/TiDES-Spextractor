@@ -17,6 +17,7 @@ if __name__ == "__main__":
 
         spec.preprocess(**{"keys": keys})
         spec.create_model()
+        spec.plot()
         spec.measure_properties(kwargs={"n_cpu":48})
         spec.features.pprint_all()
     exit()

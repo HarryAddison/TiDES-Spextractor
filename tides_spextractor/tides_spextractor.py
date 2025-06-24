@@ -126,13 +126,37 @@ class Spectrum:
 
 
     def plot(self):
-        # call to setup plot
+        # TODO Separate this code into different functions/files.
+        import matplotlib.pyplot as plt
+        plt.figure()
+
+        plt.plot(self.data["wave"].value, self.data["flux"].value,
+                 color="k", zorder=2, label="Processed Spectrum")
+        plt.fill_between(self.data["wave"].value,
+                         self.data["flux"].value - self.data["flux_err"].value,
+                         self.data["flux"].value + self.data["flux_err"].value,
+                         alpha=0.3, color="k", zorder=1,
+                         label="Processed Spectrum Error")
+
+        plt.plot(self.model_data["wave"].value, self.model_data["flux"].value,
+                 color="red", zorder=4, label="Model Spectrum")
+        plt.fill_between(self.model_data["wave"].value,
+                         self.model_data["flux"].value - self.model_data["flux_err"].value,
+                         self.model_data["flux"].value + self.model_data["flux_err"].value,
+                         alpha=0.3, color="red", zorder=3,
+                         label="Model Spectrum Error")
+
+        # for feature in self.features:
+        #     plt.plot(feature["continuum"]["wave"].value, feature["continuum"]["flux"].value)
+        
+        plt.show()
+        
+
         # call to plot pre-processed spectrum
         # call to plot model
         # call to plot the features
         # call to plot the telluric regions
         # call to save plot
-        raise NotImplementedError()
 
 
     def _setup_spectral_features(self, **kwargs):
@@ -176,7 +200,7 @@ class Spectrum:
                                                             self.gpr_model, self.gpr_kernel,
                                                             spec_feature_data.keys())
                     pew, pew_err = calc_pew(spec_feature_data, spec_feature_data.keys())
-                    self.features["vel"][i] = vel 
+                    self.features["vel"][i] = vel
                     self.features["vel_err"][i] = vel_err
                     self.features["pew"][i] = pew
                     self.features["pew_err"][i] = pew_err
