@@ -1,23 +1,16 @@
-spextractor/
-venv/
 .git/
-Dust-Maps/
-log/
 
+# package building / other 
 __pycache__/
-
-
 .python-version
-
-# Development codes not for publishing
-development-codes/
+build/
+tides_spextractor/version.py
+tides_spextractor.egg-info/
 
 # Data and figure folders
-
 *.pdf
 *.fits
 processed-Spectra/
 Spectral-Properties/
 
-Test
-test
+
