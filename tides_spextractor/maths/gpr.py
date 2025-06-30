@@ -3,77 +3,92 @@ Author: Harry Addison
 Created: 13/05/2025
 '''
 
-import GPy
+
+# I was testing the spextractor gpr code. I tried it on the template spectrum
+# and it did not model it too well. I have not yet tried it on the 4most-ified spectrum.
+# My pgytorch gpr also did not do too well at modelling the template spectrum, but it did better
+# than the spextractor gpr.
+# The template spectrum has errors of 0.0 but I noticed that the processed spectrum
+# has non zero errors, which is incorrect. I think this might be affecting the gpr models.
+# It also suggests that there is a bug in the preprocessing code as its making up errors somehow.
+
+
+import torch
+import gpytorch
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import Matern, WhiteKernel, ConstantKernel
+import linear_operator
 import numpy as np
 from astropy.table import QTable
 from astropy import units as u
+from tides_spextractor.util.conversions import convert_np_to_tensor
+from tides_spextractor.util.preprocessing import remove_masked_rows
+
+
+class ExactGPModel(gpytorch.models.ExactGP):
+    def __init__(self, train_x, train_y, likelihood):
+        super().__init__(train_x, train_y, likelihood)
+        self.mean_module = gpytorch.means.ZeroMean()
+        kernel_const = gpytorch.kernels.ConstantKernel(constant_constraint=gpytorch.constraints.Interval(0, 1))
+        kernel_rbf = gpytorch.kernels.RBFKernel(lengthscale_constraint=gpytorch.constraints.Interval(100, 500))
+        kernel_mat12 = gpytorch.kernels.MaternKernel(nu=0.5, lengthscale_constraint=gpytorch.constraints.Interval(20, 100))
+        kernel_mat52 = gpytorch.kernels.MaternKernel(nu=2.5, lengthscale_constraint=gpytorch.constraints.Interval(20, 100))
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.AdditiveKernel(gpytorch.kernels.ScaleKernel(kernel_const),
+                                                                                         gpytorch.kernels.ScaleKernel(kernel_rbf),
+                                                                                         gpytorch.kernels.ScaleKernel(kernel_mat52),
+                                                                                         gpytorch.kernels.ScaleKernel(kernel_mat12)))
+
+
+    def forward(self, x):
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 
 def make_model(data):
-    
-    '''
-    Model the spectrum using Gaussian process regression.
 
-    Inputs:
-    > "data" = Data of the spectrum. Must be in a dataframe with the
-               column names "WAVE" (wavelength), "FLUX", "ERR_FLUX"
-               (flux error).
-    > "ds_factor" = Downsampling factor.
+    data = remove_masked_rows(data)
 
-    Outputs:
-    > "model" and "kernal" of the GPR model
-    > "ds_data" = downsampled data
-    '''
-
-    x = np.array(data["wave"].value)
-    y = np.array(data["flux"].value)
+    x = convert_np_to_tensor(data["wave"].value)
+    y = convert_np_to_tensor(data["flux"].value)
     y_err = np.array(data["flux_err"].value)
-    var = y_err * y_err
-
-    # Kernel
-    mat32_kern = GPy.kern.Matern32(1, variance=1, lengthscale=5)
-    kernel = mat32_kern
-
-    # make the model and put some contraints on hyper-parameters
-    model = GPy.models.GPHeteroscedasticRegression(x[:, np.newaxis], y[:, np.newaxis], kernel)
-    model['.*het_Gauss.variance'] = var[:, np.newaxis]
-    model['.*het_Gauss.variance'].constrain_bounded(1e-6, 0.2)
+    var = convert_np_to_tensor(y_err * y_err)
+    # make model
+    likelihood = gpytorch.likelihoods.FixedNoiseGaussianLikelihood(noise=var,
+                                                                   learn_additional_noise=True)
+    model = ExactGPModel(x, y, likelihood)
     
-    # Optimise
-    model.optimize(optimizer="bfgs")
-    print(model)
+    # Train
+    model.train()
+    likelihood.train()
 
-    # obtain the optimised variance and lengthscales
-    print(kernel)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
+    mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
 
-    return model, kernel
+    with gpytorch.settings.max_cg_iterations(5000):
+        for i in range(50):
+            optimizer.zero_grad()
+            output = model(x)
+            loss = -mll(output, y)
+            loss.backward()
+            optimizer.step()
+    return model, likelihood
 
 
-def model_values(model, kernel, wl):
-    '''
-    Obtain the data for the model spectrum for the provided wavelengths.
+def model_values(model, likelihood, data):
 
-    Inputs:
-    > "model" and "kernal" = model and kernal from the GPR model. These
-                             are outputs of the function "make_model".
-    > "wl" = wavelengths to obtain the model flux for. Is an array.
+    x = convert_np_to_tensor(data["wave"].value)
 
-    Outputs:
-    > "model_spec" = Table of the "wl" with its corresponding flux and
-                     flux error from the input model.
-                     Table/dataframe has the column names: "WAVE"
-                     (wavelength), "FLUX", "ERR_FLUX" (flux err).
-    '''
+    # Predict
+    with torch.no_grad():
+        with gpytorch.settings.max_cg_iterations(5000):
+            model.eval()
+            likelihood.eval()
+            pred = likelihood(model(x))
 
-    mean, var = model.predict(wl.value[:, np.newaxis], kern=kernel.copy())
+    y = np.asarray(pred.mean.detach().cpu().numpy()).flatten() * data["flux"].unit
+    y_err = np.asarray(pred.stddev.detach().cpu().numpy()).flatten()  * data["flux"].unit
 
-    flux_unit = u.erg / (u.cm**2 * u.s)
-    model_flux = mean.squeeze() * flux_unit
-    model_flux_var = var.squeeze()
-
-    model_flux_err = np.sqrt(model_flux_var) * flux_unit
-
-    model_spec = QTable(data=[wl, model_flux, model_flux_err],
+    model_spec = QTable(data=[data["wave"], y, y_err],
                         names=["wave", "flux", "flux_err"])
-
     return model_spec

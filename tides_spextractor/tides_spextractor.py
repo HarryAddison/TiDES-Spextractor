@@ -99,8 +99,8 @@ class Spectrum:
         self.data.sort(keys="wave")
         self.data = prune_spectrum(self.data, self.min_wl, self.max_wl)
         self.data = remove_tellurics(self.data, **kwargs)
-        self.data = deredden_spectrum(self.data, self.mwebv, self.ebv)
         self.data = deredshift_spectrum(self.data, self.z, **kwargs)
+        self.data = deredden_spectrum(self.data, self.mwebv, self.ebv)
         # self.data = remove_outliers(self.data)
         self.data = normalise_spectrum(self.data, **kwargs)
 
@@ -108,7 +108,7 @@ class Spectrum:
     def create_model(self):
         data = self._check_spec_size(self.data)
         self.gpr_model, self.gpr_kernel = make_model(data)
-        self.model_data = model_values(self.gpr_model, self.gpr_kernel, self.data["wave"])
+        self.model_data = model_values(self.gpr_model, self.gpr_kernel, self.data)
 
 
     def measure_properties(self, **kwargs):
@@ -130,8 +130,8 @@ class Spectrum:
         import matplotlib.pyplot as plt
         plt.figure()
 
-        plt.plot(self.data["wave"].value, self.data["flux"].value,
-                 color="k", zorder=2, label="Processed Spectrum")
+        plt.scatter(self.data["wave"].value, self.data["flux"].value,
+                    color="k", zorder=2, label="Processed Spectrum", alpha=0.4)
         plt.fill_between(self.data["wave"].value,
                          self.data["flux"].value - self.data["flux_err"].value,
                          self.data["flux"].value + self.data["flux_err"].value,
@@ -197,8 +197,7 @@ class Spectrum:
                 if feature["continuum"]:
                     spec_feature_data = get_continuum_subtracted_feature_data(self.model_data, feature["continuum"], feature["continuum"].keys())
                     vel, vel_err = calc_vel(spec_feature_data, feature["rest_wl"],
-                                                            self.gpr_model, self.gpr_kernel,
-                                                            spec_feature_data.keys())
+                                                            self.gpr_model, spec_feature_data.keys())
                     pew, pew_err = calc_pew(spec_feature_data, spec_feature_data.keys())
                     self.features["vel"][i] = vel
                     self.features["vel_err"][i] = vel_err

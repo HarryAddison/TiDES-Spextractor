@@ -4,7 +4,7 @@ Created: 13/05/2025
 '''
 
 import numpy as np
-from astropy.table import Table
+from astropy.table import QTable, MaskedColumn
 
 
 def find_neighbours(data, val):
@@ -34,13 +34,16 @@ def downsample_spec_data(data, ds_factor, keys=["x", "y", "y_err"]):
     bin_edges= np.linspace(data[keys[0]].min(), data[keys[0]].max(),
                            (n_bins + 1), endpoint=True)
 
-    downsampled_data = Table(names=[keys[0], keys[1], keys[2]])
+    downsampled_data = QTable()
+    downsampled_data[keys[0]] = MaskedColumn([], dtype=float, unit=data[keys[0]].unit)
+    downsampled_data[keys[1]] = MaskedColumn([], dtype=float, unit=data[keys[1]].unit)
+    downsampled_data[keys[2]] = MaskedColumn([], dtype=float, unit=data[keys[2]].unit)
 
     for i in range(n_bins):
-        if i == n_bins:
-            mask = ((data[keys[0]] >= bin_edges[i]) & (data[keys[0]] <= bin_edges[i+1]))
+        if i == n_bins - 1:  # last bin
+            mask = (data[keys[0]] >= bin_edges[i]) & (data[keys[0]] <= bin_edges[i+1])
         else:
-            mask = ((data[keys[0]] >= bin_edges[i]) & (data[keys[0]] < bin_edges[i+1]))
+            mask = (data[keys[0]] >= bin_edges[i]) & (data[keys[0]] < bin_edges[i+1])
         bin_data = data[mask]
 
         if len(bin_data) > 1:

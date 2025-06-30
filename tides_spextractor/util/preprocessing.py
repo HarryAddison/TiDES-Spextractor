@@ -184,3 +184,26 @@ def normalise_spectrum(spec, normalisation_method="max", normalisation_wavelengt
     spec["flux_err"] = normalise_data(spec["flux_err"], val.value)
 
     return spec
+
+
+def remove_masked_rows(table):
+    # TODO Move to a different file/folder
+
+    # If no columns are masked at all, return table as-is
+    if not any(hasattr(col, 'mask') for col in table.itercols()):
+        return table
+
+    # Build a boolean mask for all rows: True if the row has *no* masked values
+    unmasked_mask = np.ones(len(table), dtype=bool)
+
+    for col in table.itercols():
+        if hasattr(col, 'mask'):
+            # col.mask could be False (scalar) or array — normalize to array
+            col_mask = np.array(col.mask, dtype=bool)
+            if col_mask.shape == ():  # scalar mask
+                if col_mask:
+                    unmasked_mask[:] = False  # entire column is masked
+            else:
+                unmasked_mask &= ~col_mask  # keep only unmasked rows
+
+    return table[unmasked_mask]
