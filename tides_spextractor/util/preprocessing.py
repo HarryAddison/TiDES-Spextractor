@@ -14,7 +14,7 @@ from tides_spextractor.util.input_output import load_telluric_regions
 from tides_spextractor.maths.interpolation import find_neighbours, interpolate_linear
 
 
-from astropy.table import QTable
+from astropy.table import MaskedColumn, QTable
 from warnings import warn
 
 
@@ -55,52 +55,24 @@ def clean_spectrum(spec, remove_negative_fluxes=True, remove_zero_fluxes=True, *
 
 def remove_tellurics(spec, telluric_path=None, z=None, **kwargs):
 
-    # TODO Decide if this way of dealing with the tellurics is good.
-    # Improvements/other ideas include:
-    # - Taking an average flux value and using that for the interpolation
-    #   rather than the point at the edge of the region.
-    # - Removing the fluxes in the telluric regions and letting the GPR model
-    #   fill in the blank fluxes.
+    # TODO Add the option to use different methods:
+    #   - No removal/processing
+    #   - Remove the spectrum data in the telluric regions
 
     tellurics = load_telluric_regions(telluric_path, z)
 
-    # TODO Make the functionaliy in the for loop a different function(s)
+    masks = []
     for telluric in tellurics:
-        # check telluric is within spectrum.
-        # TODO Add the edge case of when the telluric boundary wavelengths
-        # are equal to the max/min wavelength of the spectrum.
-        min_wl = min(spec["wave"])
-        max_wl = max(spec["wave"])
+        # Remove the data points
+        # Invert the mask so that when the masks are multiplied into one mask,
+        # the masked regions from each individual mask remain.
+        masks.append(~((spec["wave"] >= telluric["lower_wl"]) & (spec["wave"] <= telluric["upper_wl"])))
 
-        if min_wl > telluric["lower_wl"]:
-            if min_wl > telluric["upper_wl"]:
-                # Telluric at lower wavelengths than spectrum
-                continue
-            elif min_wl < telluric["upper_wl"]:
-                # Telluric partly overlaps with the lower wavelength spectrum
-                # Remove the data overlapping with the telluric region
-                mask = spec["wave"] > telluric["upper_wl"]
-                spec = spec[mask]
-        if max_wl < telluric["upper_wl"]:
-            if max_wl < telluric["lower_wl"]:
-                # Telluric at higher wavelengths than spectrum
-                continue
-            if max_wl > telluric["lower_wl"]:
-                # Telluric partly overlaps with the higher wavelength spectrum
-                # Remove the data overlapping with the telluric region
-                mask = spec["wave"] < telluric["lower_wl"]
-                spec = spec[mask]
-        else:
-            # Telluric within the spectrum
-            # Replace the fluxes with interpolated values
-            mask = (spec["wave"] >= telluric["lower_wl"]) & (spec["wave"] <= telluric["upper_wl"])
-            ind = np.nonzero(mask)[0]
-
-            # Interpolate between the points either side of the masked region.
-            spec["flux"][ind] = interpolate_linear(spec["wave"][[ind[0] - 1, ind[-1] + 1]],
-                                                   spec["flux"][[ind[0] - 1, ind[-1] + 1]],
-                                                   spec["wave"][ind])
-
+    mask = np.prod(np.array(masks), axis=0, dtype=bool)
+    spec["flux"] = MaskedColumn(spec["flux"])
+    spec["flux_err"] = MaskedColumn(spec["flux_err"])
+    spec["flux"].mask = ~mask  # Invert the mask from previous inversion
+    spec["flux_err"].mask = ~mask
     return spec
 
 
@@ -146,8 +118,6 @@ def remove_outliers(spec):
 
     return spec[mask] 
     
-
-
 
 def normalise_spectrum(spec, normalisation_method="max", normalisation_wavelength=None, **kwargs):
     if normalisation_method == "max":
