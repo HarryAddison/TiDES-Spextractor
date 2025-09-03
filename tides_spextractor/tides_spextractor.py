@@ -36,9 +36,9 @@ class SN:
         if self.mwebv is None and self.ra is not None and self.dec is not None:
             self.mwebv = get_mwebv(self.ra, self.dec)
 
-        if rest_phase is None:
-            raise NotImplementedError("Conversion of the phase to the rest phase "
-                                      "is not yet implemented. Please provide the rest phase")
+        if self.rest_phase is None:
+            if self.phase is not None:
+                self.rest_phase = self.phase / (1 + self.z) 
 
 
     def add_spectrum(self, fn, **kwargs):
