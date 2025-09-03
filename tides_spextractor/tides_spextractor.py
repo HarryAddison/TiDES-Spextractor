@@ -5,6 +5,7 @@ Created: 17/02/2025
 
 from tides_spextractor.maths.gpr import *
 from tides_spextractor.maths.interpolation import downsample_spec_data, bin_spec_data
+from tides_spextractor.physics.extinction import get_mwebv
 from tides_spextractor.physics.line_velocity import calc_vel
 from tides_spextractor.physics.pseudo_equivalent_width import calc_pew
 from tides_spextractor.util.conversions import *
@@ -32,10 +33,8 @@ class SN:
 
         # TODO Checks to make sure the provided values above are suitable.
 
-
-        if mwebv is None and self.ra is not None and self.dec is not None:
-            raise NotImplementedError()
-            self.mwebv = get_mwebv()  #TODO
+        if self.mwebv is None and self.ra is not None and self.dec is not None:
+            self.mwebv = get_mwebv(self.ra, self.dec)
 
         if rest_phase is None:
             raise NotImplementedError("Conversion of the phase to the rest phase "

@@ -4,6 +4,8 @@ Created: 17/02/2025
 '''
 
 import numpy as np
+from astropy.coordinates import SkyCoord
+from dustmaps.sfd import SFDQuery
 from extinction import fitzpatrick99, remove
 
 
@@ -20,3 +22,14 @@ def deredden(data, ebv, rv):
     data["flux"] = remove(wl_dependent_ebv, data["flux"])
 
     return data
+
+
+def get_mwebv(ra, dec, frame='icrs', **kwargs):
+    '''
+    Query the Schlegel, Finkbeiner & Davis dust map at the given
+    coords for the MW Galaxy extinction ebv.
+    '''
+    coord = SkyCoord(ra, dec, frame=frame)
+    mwebv = float(SFDQuery()(coord))
+
+    return mwebv
