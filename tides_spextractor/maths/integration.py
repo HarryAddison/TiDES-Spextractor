@@ -36,8 +36,8 @@ def calc_simspon_even_interval_error(x, y_err):
     term_3 = 2 - h_frac
 
     error = np.sqrt(sum(term_com**2 * (term_1**2 * y_err[slice_1]**2 +
-                                    term_2**2 * y_err[slice_2]**2 +
-                                    term_3**2 * y_err[slice_3]**2)))
+                                       term_2**2 * y_err[slice_2]**2 +
+                                       term_3**2 * y_err[slice_3]**2)))
 
     return error
 
@@ -45,7 +45,7 @@ def calc_simspon_even_interval_error(x, y_err):
 def calc_simpson_odd_interval_error(x, y_err):
 
     # first N - 1 intervals
-    result = calc_simspon_even_interval_error(x, y_err)
+    result = calc_simspon_even_interval_error(x, y_err)**2  # Want the error^2
 
     # last interval
     last_ind = len(x) - 1
