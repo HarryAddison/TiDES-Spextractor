@@ -37,23 +37,25 @@ def parser():
     return parser
 
 
-def load_config():
+def load_config(initfile=None):
     '''
-    Obtain the config parameters from the yaml file that was parsed via
-    the command line.
+    Obtain the config parameters from the given yaml file. If no file path provided
+    try to see if a yaml file was parsed via the command line.
     '''
 
-    arg_parser = parser()
-    args = arg_parser.parse_args()
-    print(f"\nInput parameter file: {args.initfile}\n\n")
+    if initfile == None:
+        arg_parser = parser()
+        args = arg_parser.parse_args()
+        initfile = args.initfile
+        print(f"\nInput parameter file: {initfile}\n\n")
 
-    # If no parameter file was provided print help message
-    if args.initfile is None:
-        arg_parser.print_help()
-        exit()
+        # If no parameter file was provided print help message
+        if initfile is None:
+            arg_parser.print_help()
+            exit()
 
     # Open the initfile and read in the parameters
-    with open(str(args.initfile), "r") as file:
+    with open(str(initfile), "r") as file:
         config = yaml.safe_load(file)
 
     config = convert_config_quantities(config)
