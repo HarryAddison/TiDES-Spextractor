@@ -2,7 +2,6 @@
 Author: Harry Addison
 Created: 02/06/25
 '''
-import astropy.units as u
 import numpy as np
 import torch
 from tides_spextractor.physics.doppler import calc_doppler_vel, calc_doppler_vel_err
