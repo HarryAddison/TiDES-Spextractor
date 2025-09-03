@@ -1,8 +1,0 @@
-remove_zero_fluxes: True
-remove_negative_fluxes: True
-
-min_wavelength: 4000 Angstrom
-max_wavelength: 5000 Angstrom
-
-normalisation_method: "flux_at_wl"
-normalisation_wavelength: 4002.6603049265746 Angstrom 

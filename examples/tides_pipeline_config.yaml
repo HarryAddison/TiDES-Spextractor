@@ -1,0 +1,31 @@
+keys: ["wave", "flux", "flux_err"]
+
+# What is the maximum number of data points allowed in the spectrum.
+# Used to limit the amount of data provided to the GP modelling as run
+# time increases with data points.
+# If number of points greater than the set limit, then the data is binned
+# to reduce the number of data points to the limit.
+points_limit: 4000
+
+preprocess_binning: False
+preprocess_binning_width: 15
+
+# Number of training iterations that the GP model should do.
+gp_training_iterations: 2000
+plot_loss: True
+
+# GP model optimisation early stop parameters
+# min_delta_loss: The threshold at which to define no significant improvement
+#                 is being made by an optimisation interation.
+# patience: how many more iterations to do after delta loss
+#           becomes smaller than min_delta_loss.
+min_delta_loss: 0.0001
+patience: 20
+
+# Host galaxy removal
+# host_gal_removal: Should the code model the host galaxy contamination and then remove it?
+# fit_wl_bounds: The wavelength range used to fit/model the host galaxy contamination.
+#                If a value is None then the boundary is determined from the min/max of the
+#                common wavelengths of the galaxy eigenspectra and observed spectrum.
+host_gal_removal: True
+fit_wl_bounds: [3500, 7500]  # Set to maximum wavelength coverage of eigenspectra

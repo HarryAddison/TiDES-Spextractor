@@ -1,25 +1,41 @@
 import os
 import sys
 
-
-
 import tides_spextractor
 from astropy.table import QTable
 import matplotlib.pyplot as plt
+from tides_spextractor.util.input_output import load_config
+
 
 if __name__ == "__main__":
-    a = QTable.read("/vol/ph/astro_data/haddison/TiDES-spectral-analysis/TiDES-spextractor-testing/spectrum_parameters.fits")
-    sn = tides_spextractor.SN("Ia", z=a["redshift"][0], ra=a["ra"][0], dec=a["dec"][0], mwebv=a["mwebv"][0], ebv=None, phase=0, rest_phase=0)
-    sn.add_spectrum(fn="/vol/ph/astro_data/haddison/TiDES-spectral-analysis/TiDES-spextractor-testing/mock-4most-spectra/spectrum_1.fits")
+    ts_config = load_config("tides_pipeline_config.yaml")
 
-    keys = ["wave", "flux", "flux_err"]
+    # a = QTable.read("/vol/ph/astro_data/haddison/TiDES-spectral-analysis/TiDES-spextractor-testing/test-data/simple-test-data/spectrum_parameters.fits")
+    # i = 0  # There are 3 SNe in the sample, use python indexing
+    # sn = tides_spextractor.SN("Ia", z=a["redshift"][i], ra=a["ra"][i], dec=a["dec"][i], mwebv=a["mwebv"][i], ebv=None, phase=0, rest_phase=0, config=ts_config)
+    # sn.add_spectrum(fn=f"/vol/ph/astro_data/haddison/TiDES-spectral-analysis/TiDES-spextractor-testing/test-data/simple-test-data/mock-4most-spectra/spectrum_{i+1}.fits")
+    # sn.add_spectrum(fn=f"/vol/ph/astro_data/haddison/TiDES-spectral-analysis/TiDES-spextractor-testing/mock-4most-spectra/template_{i+1}.fits")
+    
+    
+    # Data from SNR testing
+    sne_info = QTable.read("/vol/ph/astro_data/haddison/TiDES-spectral-analysis/TiDES-spextractor-testing/SNR-testing/data/mock-spectra/spectrum_parameters.fits")
+    id = 16
+    row = sne_info[sne_info["id"]==id]
+    print(row)
+    sn = tides_spextractor.SN("Ia", z=row["z"], ra=row["ra"], dec=row["dec"], mwebv=row["mwebv"], ebv=row["hostebv"], phase=row["observer_phase"][0], rest_phase=row["rest_phase"][0], config=ts_config)
+    sn.add_spectrum(fn=f"/vol/ph/astro_data/haddison/TiDES-spectral-analysis/TiDES-spextractor-testing/SNR-testing/data/mock-spectra/l1-spectra/l1_spectrum_{id}.fits")
+
+    
+
+
     for spec in sn.spectra:
-
-        spec.preprocess(**{"keys": keys})
+        spec.preprocess()
         spec.create_model()
+        # spec.measure_properties()
+        # spec.features.pprint_all()
+        print("Galaxy eigenvalues:", spec.gal_model_eigenvals)
         spec.plot()
-        spec.measure_properties(kwargs={"n_cpu":48})
-        spec.features.pprint_all()
+        plt.show()
     exit()
 
 
