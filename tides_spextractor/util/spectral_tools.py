@@ -4,19 +4,11 @@ Created: 15/05/2025
 '''
 
 from tides_spextractor.maths.interpolation import interpolate_linear
-from tides_spextractor.util.input_output import load_spectral_feature_definitions, load_telluric_regions
-from tides_spextractor.util.memory_size import estimate_table_size
 from astropy.table import QTable
-from multiprocessing import  cpu_count, Pool
-from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
-import dask
-from dask import delayed, compute
-from dask.distributed import Client, LocalCluster
 import numpy as np
-import psutil
 
 
-def identify_present_features(features, spec_wls):
+def identify_present_features(features, spec_wls, **kwargs):
     within_wl_range_mask = ((features["lo_range_lo"]>= spec_wls.min()) &
                             (features["up_range_up"]<= spec_wls.max()))
     features["measure_flag"][~within_wl_range_mask] = False
@@ -24,7 +16,7 @@ def identify_present_features(features, spec_wls):
     return features
 
 
-def identify_features_coincident_with_tellurics(features, telluric_regions):
+def identify_features_coincident_with_tellurics(features, telluric_regions, **kwargs):
     for telluric_region in telluric_regions:
         coincide_telluric_mask = ((telluric_region["lower_wl"] <= features["up_range_up"]) &
                                          (telluric_region["upper_wl"] >= features["lo_range_lo"]))
@@ -32,7 +24,7 @@ def identify_features_coincident_with_tellurics(features, telluric_regions):
     return features
 
 
-def evaluate_continuum(spec):
+def evaluate_continuum(spec, **kwargs):
 
     continuum_flux = interpolate_linear([spec["wave"][0], spec["wave"][-1]],
                                         [spec["flux"][0], spec["flux"][-1]], spec["wave"])
@@ -76,7 +68,6 @@ def get_continuum(spec, feature, **kwargs):
 
 def locate_spectral_features(spec, features, **kwargs):
     for i, feature in enumerate(features):
-        print(i, feature)
         if feature["measure_flag"]:
             continuum = get_continuum(spec, feature)
             if continuum:
@@ -87,10 +78,16 @@ def locate_spectral_features(spec, features, **kwargs):
     return features
 
 
-def get_continuum_subtracted_feature_data(data, continuum_data, keys=["x", "y"]):
+def get_feature_data(data, continuum_data, keys=["x", "y"], **kwargs):
 
     feature_wl_mask = ((data[keys[0]] >= min(continuum_data[keys[0]])) &
                        (data[keys[0]] <= max(continuum_data[keys[0]])))
     feature_data = data[feature_wl_mask]
-    feature_data[keys[1]] -= continuum_data[keys[1]]
     return feature_data
+
+
+def normalise_by_continuum(data, continuum_data, keys=["x", "y"], **kwargs):
+
+    norm_flux = data[keys[1]] - continuum_data[keys[1]]
+    data[keys[1]] = norm_flux
+    return data
