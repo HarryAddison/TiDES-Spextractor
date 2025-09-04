@@ -29,3 +29,7 @@ patience: 20
 #                common wavelengths of the galaxy eigenspectra and observed spectrum.
 host_gal_removal: True
 fit_wl_bounds: [3500, 7500]  # Set to maximum wavelength coverage of eigenspectra
+
+
+# Spectrum Plotting
+plot_tellurics: True
