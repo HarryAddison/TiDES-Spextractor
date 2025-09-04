@@ -7,7 +7,7 @@ Functions for preprocessing the spectrum.
 
 import importlib_resources
 import numpy as np
-from tides_spextractor.physics import deredden
+from tides_spextractor.physics import extinction
 from tides_spextractor.physics import doppler
 from tides_spextractor.util.conversions import normalise_data
 from tides_spextractor.util.input_output import load_telluric_regions
@@ -79,10 +79,10 @@ def remove_tellurics(spec, telluric_path=None, z=None, **kwargs):
 def deredden_spectrum(spec, mwebv, ebv, rv=3.1):
 
     if mwebv is not None:
-        spec = deredden.deredden(spec, mwebv, rv)
+        spec = extinction.deredden(spec, mwebv, rv)
 
     if ebv is not None:
-        spec = deredden.deredden(spec, ebv, rv)
+        spec = extinction.deredden(spec, ebv, rv)
 
     return spec
 
