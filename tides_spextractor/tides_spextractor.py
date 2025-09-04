@@ -10,6 +10,7 @@ from tides_spextractor.physics.line_velocity import calc_vel
 from tides_spextractor.physics.pseudo_equivalent_width import calc_pew
 from tides_spextractor.util.conversions import *
 from tides_spextractor.util.input_output import *
+from tides_spextractor.util.plotting import *
 from tides_spextractor.util.preprocessing import *
 from tides_spextractor.util.spectral_tools import *
 from host_removal import HostGalaxyRemoval
@@ -141,39 +142,21 @@ class Spectrum:
         # Overwrite/combine the config kwargs with those defined in the function call.
         kwargs = {**self.config, **kwargs}
 
-        # TODO Separate this code into different functions/files.
-        import matplotlib.pyplot as plt
-        plt.figure()
+        plt.figure(figsize=(10,10), dpi=1000)
 
-        plt.scatter(self.data["wave"].value, self.data["flux"].value,
-                    color="k", zorder=2, label="Processed Spectrum", alpha=0.4)
-        plt.fill_between(self.data["wave"].value,
-                         self.data["flux"].value - self.data["flux_err"].value,
-                         self.data["flux"].value + self.data["flux_err"].value,
-                         alpha=0.3, color="k", zorder=1,
-                         label="Processed Spectrum Error")
-        
-        plt.scatter(self.ds_data["wave"].value, self.ds_data["flux"].value,
-                    color="blue", zorder=4, label="DS Spectrum", alpha=0.4)
-        plt.fill_between(self.ds_data["wave"].value,
-                         self.ds_data["flux"].value - self.ds_data["flux_err"].value,
-                         self.ds_data["flux"].value + self.ds_data["flux_err"].value,
-                         alpha=0.3, color="blue", zorder=3,
-                         label="DS Spectrum Error")
+        if kwargs["plot_tellurics"]:
+            plot_telluric_regions([self.min_wl, self.max_wl], self.z, **kwargs)
 
-        plt.plot(self.model_data["wave"].value, self.model_data["flux"].value,
-                 color="red", zorder=6, label="Model Spectrum")
-        plt.fill_between(self.model_data["wave"].value,
-                         self.model_data["flux"].value - self.model_data["flux_err"].value,
-                         self.model_data["flux"].value + self.model_data["flux_err"].value,
-                         alpha=0.3, color="red", zorder=4,
-                         label="Model Spectrum Error")
+        plot_spec_with_err(self.data, alphas=[0.4, 0.3], color="k",
+                           label="Processed Spectrum", z_orders=[2, 1], **kwargs)
+        plot_spec_with_err(self.ds_data, alphas=[0.2, 0.1], color="blue",
+                           label="Downsampled Spectrum", z_orders=[4, 3], **kwargs)
+        plot_spec_with_err(self.model_data, plot_type="line", alphas=[1, 0.3], color="red",
+                           label="Model Spectrum", z_orders=[6, 5], **kwargs)
 
-        for feature in self.features:
-            try:
-                plt.plot(feature["continuum"]["wave"].value, feature["continuum"]["flux"].value, c="k", zorder=1000)
-            except:
-                pass
+        plot_features(self.features, "k", 7, **kwargs)
+
+        plt.legend()
 
 
     def _setup_spectral_features(self, **kwargs):
@@ -223,7 +206,7 @@ class Spectrum:
                     self.features["vel_err"][i] = vel_err
                     self.features["pew"][i] = pew
                     self.features["pew_err"][i] = pew_err
-    
+
 
     def _remove_host_galaxy(self, **kwargs):
         hgr = HostGalaxyRemoval(self.model_data, self.rest_phase.value, **kwargs)
