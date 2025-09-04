@@ -27,8 +27,10 @@ patience: 20
 # fit_wl_bounds: The wavelength range used to fit/model the host galaxy contamination.
 #                If a value is None then the boundary is determined from the min/max of the
 #                common wavelengths of the galaxy eigenspectra and observed spectrum.
+#                Wavelengths must be set within the wavelengths covered by the eigenspectra,
+#                which cover between 3500A and 7500A. 
 host_gal_removal: True
-fit_wl_bounds: [3500, 7500]  # Set to maximum wavelength coverage of eigenspectra
+fit_wl_bounds: [3500, 7500]  
 
 
 # Spectrum Plotting
