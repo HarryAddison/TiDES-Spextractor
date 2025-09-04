@@ -28,7 +28,7 @@ def plot_telluric_regions(wl_range, z, **kwargs):
             plt.fill_between([telluric["lower_wl"].value, telluric["upper_wl"].value],
                              1, 0, color="k", alpha=0.4, zorder=0)
 
-            plt.text(telluric["lower_wl"], 1.02, telluric["feature"],
+            plt.text(telluric["lower_wl"].value, 1.02, telluric["feature"],
                      rotation=90, fontsize=9)
 
 
@@ -40,8 +40,8 @@ def plot_features(features, color, z_order, keys=["x", "y", "z"], **kwargs):
                      c=color, zorder=z_order, label="Continuum")
 
             mid_ind = int(len(feature["continuum"]) / 2)
-            x = feature["continuum"][keys[0]][mid_ind]
-            y = feature["continuum"][keys[1]][mid_ind] + 0.025
+            x = feature["continuum"][keys[0]][mid_ind].value
+            y = feature["continuum"][keys[1]][mid_ind].value + 0.025
             plt.text(x, y, feature["feature"], rotation=90, fontsize=7, zorder=z_order)
         except:
             pass
