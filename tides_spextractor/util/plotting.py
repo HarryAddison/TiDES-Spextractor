@@ -4,19 +4,19 @@ from tides_spextractor.util.input_output import load_telluric_regions
 
 def plot_spec_with_err(spec, keys=["x", "y", "z"], plot_type="scatter",
                        alphas=[0.5, 0.25], color="k", label="Spectrum",
-                       marker_area=9, z_orders=[2,1],  **kwargs):
+                       marker_area=9, z_orders=[2,1], **kwargs):
     if plot_type == "scatter":
         plt.scatter(spec[keys[0]].value, spec[keys[1]].value, alpha=alphas[0],
-                    color=color, label=label, s=marker_area, zorder=z_orders[0], **kwargs)        
+                    color=color, label=label, s=marker_area, zorder=z_orders[0])
     elif plot_type == "line":
         plt.scatter(spec[keys[0]].value, spec[keys[1]].value, alpha=alphas[0],
-                    color=color, label=label, zorder=z_orders[0], **kwargs)      
+                    color=color, label=label, zorder=z_orders[0])
 
     plt.fill_between(spec[keys[0]].value,
                      spec[keys[1]].value - spec[keys[2]].value,
                      spec[keys[1]].value + spec[keys[2]].value,
                      alpha=alphas[1], color=color, label=f"{label} Error",
-                     zorder=z_orders[1], **kwargs)
+                     zorder=z_orders[1])
 
 
 def plot_telluric_regions(wl_range, z, **kwargs):
