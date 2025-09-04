@@ -142,7 +142,7 @@ class Spectrum:
         # Overwrite/combine the config kwargs with those defined in the function call.
         kwargs = {**self.config, **kwargs}
 
-        plt.figure(figsize=(10,10), dpi=1000)
+        plt.figure(figsize=(16,9))
 
         if kwargs["plot_tellurics"]:
             plot_telluric_regions([self.min_wl, self.max_wl], self.z, **kwargs)
@@ -157,8 +157,10 @@ class Spectrum:
         plot_features(self.features, "k", 7, **kwargs)
 
         plt.legend()
-        plt.xlabel(r"$\rm{Wavelength}~(\aa)")
+        plt.xlabel(r"$\rm{Wavelength}~(\AA)$")
         plt.ylabel("Normalised flux")
+        plt.xlim((self.min_wl.value - 100), (self.max_wl.value + 100))
+        plt.ylim(0, 1.1)
 
 
     def _setup_spectral_features(self, **kwargs):
