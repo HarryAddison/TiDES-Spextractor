@@ -157,6 +157,8 @@ class Spectrum:
         plot_features(self.features, "k", 7, **kwargs)
 
         plt.legend()
+        plt.xlabel(r"$\rm{Wavelength}~(\aa)")
+        plt.ylabel("Normalised flux")
 
 
     def _setup_spectral_features(self, **kwargs):
