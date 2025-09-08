@@ -1,3 +1,5 @@
+# Keys relating to the spectrum table columns
+# Must be in the order: wavelength, flux, flux err
 keys: ["wave", "flux", "flux_err"]
 
 # What is the maximum number of data points allowed in the spectrum.

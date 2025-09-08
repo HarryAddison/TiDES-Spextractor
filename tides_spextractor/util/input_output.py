@@ -62,10 +62,10 @@ def load_config(initfile=None):
     return config
 
 
-def read_spec(fn, file_format, wl_col="wave", flux_col="flux", flux_err_col="flux_err", **kwargs):
+def read_spec(fn, file_format, keys=["x", "y", "y_err"], **kwargs):
     if isinstance(fn, str) and isinstance(file_format, str):
         spec = QTable.read(fn, format=file_format)
-        spec.rename_columns([wl_col, flux_col, flux_err_col], ["wave", "flux", "flux_err"])
+        spec.rename_columns([keys[0], keys[1], keys[2]], ["wave", "flux", "flux_err"])
         return spec
     elif isinstance(fn, str) is False:
         raise TypeError("The filename provided is not a string.")
