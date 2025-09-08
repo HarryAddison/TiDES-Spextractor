@@ -24,52 +24,76 @@ def identify_features_coincident_with_tellurics(features, telluric_regions, **kw
     return features
 
 
-def evaluate_continuum(spec, **kwargs):
+def find_suitable_continuum_region_bounds(spec, feature, keys=["x", "y"], **kwargs):
+    lower_region_mask = ((spec[keys[0]] < feature["lo_range_up"]) &
+                         (spec[keys[0]] > feature["lo_range_lo"]))
+    upper_region_mask = ((spec[keys[0]] < feature["up_range_up"]) &
+                         (spec[keys[0]] > feature["up_range_lo"]))
+    lower_region_inds = np.where(lower_region_mask)[0]
+    upper_region_inds = np.where(upper_region_mask)[0]
 
-    continuum_flux = interpolate_linear([spec["wave"][0], spec["wave"][-1]],
-                                        [spec["flux"][0], spec["flux"][-1]], spec["wave"])
-    continuum = QTable({"wave": spec["wave"], "flux": continuum_flux})
+    return lower_region_inds, upper_region_inds
 
-    residuals = continuum["flux"] - spec["flux"]
 
-    del continuum
-    del spec
+def find_best_continuum(spec, lower_region_inds, upper_region_inds, keys=["x", "y"], **kwargs):
 
-    if min(residuals) >= 0:
-        return True
+    wl = spec[keys[0]]
+    flux = spec[keys[1]]
+
+    # Wavelengths and flux data seperated into lower and upper continuum bound regions
+    wls_low = wl[lower_region_inds]
+    wls_up = wl[upper_region_inds]
+    fluxes_low = flux[lower_region_inds]
+    fluxes_up = flux[upper_region_inds]
+
+    # Search the pairs of points that have "best" continuum.
+    # Best = continuum that is above spectrum and maximises wavelength span.
+    best_continuum_wl = None
+    best_continuum_flux = None
+    best_width = -np.inf
+
+    # loop points in upper and lower continuum bound regions, covering all pairs
+    for i, wl_low in enumerate(wls_low):
+        for j, wl_up in enumerate(wls_up):
+            if wl_up == wl_low:
+                continue  # avoid divide by zero
+
+            # spectrum between the two wl points
+            mask = (wl >= wl_low) & (wl <= wl_up)
+            wl_segment = wl[mask]
+            flux_segment = flux[mask]
+
+            flux_continuum = interpolate_linear([wl_low, wl_up],
+                                                [fluxes_low[i], fluxes_up[j]],
+                                                wl_segment)
+
+            # check if continuum is above the spectrum
+            if np.all(flux_continuum >= flux_segment):
+                width = abs(wl_up - wl_low)
+                if width > best_width:
+                    best_width = width
+                    best_continuum_wl = wl_segment
+                    best_continuum_flux = flux_continuum
+
+    if best_continuum_flux is not None:
+        return QTable({keys[0]: best_continuum_wl, keys[1]: best_continuum_flux})
     else:
-        return False
+        return None
 
 
 def get_continuum(spec, feature, **kwargs):
     '''
-    Locate the maxima in the feature's lower bound. Continuum must be fitted
-    to this point or a point at a higher wavelength.
     '''
+    lo_region_inds, up_region_inds = find_suitable_continuum_region_bounds(spec, feature, **kwargs)
+    continuum = find_best_continuum(spec, lo_region_inds, up_region_inds, **kwargs)
 
-    lower_region_mask = ((spec["wave"] < feature["lo_range_up"]) &
-                         (spec["wave"] > feature["lo_range_lo"]))
-    upper_region_mask = ((spec["wave"] < feature["up_range_up"]) &
-                         (spec["wave"] > feature["up_range_lo"]))
-    lower_region_mask_inds = np.where(lower_region_mask)[0]
-    upper_region_mask_inds = np.where(upper_region_mask)[0]
-
-    lower_region_maxima_ind = lower_region_mask_inds[spec["flux"][lower_region_mask].argmax()]
-    upper_region_maxima_ind = upper_region_mask_inds[spec["flux"][upper_region_mask].argmax()]
-
-    spec = spec[lower_region_maxima_ind:upper_region_maxima_ind]
-
-    continuum_flux = interpolate_linear([spec["wave"][0], spec["wave"][-1]],
-                                        [spec["flux"][0], spec["flux"][-1]],
-                                        spec["wave"])
-    continuum = QTable({"wave": spec["wave"], "flux": continuum_flux})
     return continuum
 
 
 def locate_spectral_features(spec, features, **kwargs):
     for i, feature in enumerate(features):
         if feature["measure_flag"]:
-            continuum = get_continuum(spec, feature)
+            continuum = get_continuum(spec, feature, **kwargs)
             if continuum:
                 features[i]["continuum"] = continuum
             else:
