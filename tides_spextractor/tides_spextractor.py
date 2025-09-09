@@ -162,7 +162,7 @@ class Spectrum:
         plot_features(self.features, "k", 7, **kwargs)
 
         plt.legend()
-        plt.xlabel(r"$\rm{Rest Frame Wavelength}~(\AA)$")
+        plt.xlabel(r"$\rm{Rest~Frame~Wavelength}~(\AA)$")
         plt.ylabel("Normalised flux")
         plt.xlim((self.min_rest_wl.value - 100), (self.max_rest_wl.value + 100))
         plt.ylim(0, 1.1)
