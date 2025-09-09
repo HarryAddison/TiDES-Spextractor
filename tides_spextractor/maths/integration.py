@@ -14,7 +14,7 @@ def calc_simpson_2_points_error(x, y_err):
     where the differential is partial and n is the number of data points
     '''
 
-    error = (0.5 * x[0] * x[1]) * np.sqrt((y_err[0]**2 + y_err[1]**2))
+    error = (0.5 * (x[0] - x[1])) * np.sqrt((y_err[0]**2 + y_err[1]**2))
     return error
 
 
