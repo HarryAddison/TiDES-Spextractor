@@ -39,7 +39,7 @@ class SN:
 
         if self.rest_phase is None:
             if self.phase is not None:
-                self.rest_phase = self.phase / (1 + self.z) 
+                self.rest_phase = self.phase / (1 + self.z)
 
 
     def add_spectrum(self, fn, **kwargs):
@@ -53,16 +53,16 @@ class Spectrum:
 
     def __init__(self, sn_instance, fn, file_format="fits", min_wavelength=None,
                  max_wavelength=None, **kwargs):
-        
-        self.sn_instance = sn_instance
 
+        self.sn_instance = sn_instance
         self.data = obtain_spec(fn, file_format, **self.config)
+
         if min_wavelength is None:
-            self.min_wl = min(self.data["wave"])
+            self.min_wl = min(self.data[self.config["keys"][0]])
         else:
             self.min_wl = min_wavelength
         if max_wavelength is None:
-            self.max_wl = max(self.data["wave"])
+            self.max_wl = max(self.data[self.config["keys"][0]])
         else:
             self.max_wl = max_wavelength
         if self.min_wl.unit == u.nm:
@@ -71,12 +71,16 @@ class Spectrum:
             self.max_wl = nm_to_A(self.max_wl)
         if self.min_wl.unit not in [u.Angstrom, u.nm] or self.max_wl.unit not in [u.Angstrom, u.nm]:
             raise u.core.UnitTypeError("Incompatible wavelength units. Wavelength range must be in nm or Angstrom.")
+
+        self.min_rest_wl = None
+        self.max_rest_wl = None
         self.model_data = None
         self.features = None
         self.gpr_model = None
         self.gpr_kernel = None
         self.ds_data = None
         self.gal_model_eigenvals = None
+        
 
         #TODO Add checks for the right data structure/keys
 
@@ -98,14 +102,15 @@ class Spectrum:
             - Normalisation
         '''
         # Overwrite/combine the config kwargs with those defined in the function call.
-        kwargs = {**self.config, **kwargs}
+        kwargs = {**{"keys": ["x", "y", "y_err"]}, **self.config, **kwargs}
 
         self.data = clean_spectrum(self.data, **kwargs)
-        self.data.sort(keys="wave")
-        self.data = prune_spectrum(self.data, self.min_wl, self.max_wl)
+        self.data.sort(keys=kwargs["keys"])
+        self.data = prune_spectrum(self.data, self.min_wl, self.max_wl, **kwargs)
         # self.data = remove_tellurics(self.data, **kwargs)
         self.data = deredshift_spectrum(self.data, self.z, **kwargs)
-        self.data = deredden_spectrum(self.data, self.mwebv, self.ebv)
+        self.data = deredden_spectrum(self.data, self.mwebv, self.ebv, **kwargs)
+        self.min_rest_wl, self.max_rest_wl = min(self.data[kwargs["keys"][0]]), max(self.data[kwargs["keys"][0]])
         # self.data = remove_outliers(self.data)
         if kwargs["preprocess_binning"] == True:
             self.data = bin_spec_data(self.data, kwargs["preprocess_binning_width"], **kwargs)
@@ -157,16 +162,16 @@ class Spectrum:
         plot_features(self.features, "k", 7, **kwargs)
 
         plt.legend()
-        plt.xlabel(r"$\rm{Wavelength}~(\AA)$")
+        plt.xlabel(r"$\rm{Rest Frame Wavelength}~(\AA)$")
         plt.ylabel("Normalised flux")
-        plt.xlim((self.min_wl.value - 100), (self.max_wl.value + 100))
+        plt.xlim((self.min_rest_wl.value - 100), (self.max_rest_wl.value + 100))
         plt.ylim(0, 1.1)
 
 
     def _setup_spectral_features(self, **kwargs):
         self._load_features(**kwargs)
         self._identify_features_coincident_with_tellurics(**kwargs)
-        self.features = identify_present_features(self.features, self.model_data["wave"], **kwargs)
+        self.features = identify_present_features(self.features, self.model_data[kwargs["keys"][0]], **kwargs)
         self.features = locate_spectral_features(self.model_data, self.features, **kwargs)
 
 
@@ -212,10 +217,12 @@ class Spectrum:
                     self.features["pew_err"][i] = pew_err
 
 
-    def _remove_host_galaxy(self, **kwargs):
+    def _remove_host_galaxy(self, host_gal_removal_plot=False, **kwargs):
         hgr = HostGalaxyRemoval(self.model_data, self.rest_phase.value, **kwargs)
         hgr.fit_spectrum()
         hgr.remove_galaxy_contamination()
+        if host_gal_removal_plot:
+            hgr.plot_fit(show=True)
 
         self.model_data = hgr.sn_spec_no_host
         self.gal_model_eigenvals = hgr.gal_eigenvals
