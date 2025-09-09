@@ -11,10 +11,9 @@
 # - {name: lo_range_up, unit: angstrom, datatype: float64}
 # - {name: up_range_lo, unit: angstrom, datatype: float64}
 # - {name: up_range_up, unit: angstrom, datatype: float64}
-# - {name: min_phase, unit: day, datatype: float64}
-# - {name: max_phase, unit: day, datatype: float64}
+
 # schema: astropy-2.0
-feature rest_wl lo_range_lo lo_range_up up_range_lo up_range_up min_phase max_phase
+feature rest_wl lo_range_lo lo_range_up up_range_lo up_range_up
 "Si II 4000A" 4129.73 3800 4000 4000 4150
 "Mg II 4300A" 4481.2 3800 4150 4350 4700
 "Fe II 4800A" 5083.42 4350 4700 5000 5600
@@ -26,6 +25,11 @@ feature rest_wl lo_range_lo lo_range_up up_range_lo up_range_up min_phase max_ph
 
 
 # Definitions I came up with that are based on phase.
+# Additional dattypes
+# - {name: min_phase, unit: day, datatype: float64}
+# - {name: max_phase, unit: day, datatype: float64}
+
+
 # "Ca II H&K"  3945.28 3400 3800 3800 4000 -1000 1000
 # "Si II 4000A" 4129.73 3800 4000 4000 4150 -1000 9
 # "Mg II 4300A" 4481.2 4000 4150 4350 4700 -1000 9
