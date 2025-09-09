@@ -1,6 +1,6 @@
 # Keys relating to the spectrum table columns
 # Must be in the order: wavelength, flux, flux err
-keys: ["wave", "flux", "flux_err"]
+keys: ["WAVE", "FLUX", "ERR_FLUX"] # ["wave", "flux", "flux_err"]
 
 # What is the maximum number of data points allowed in the spectrum.
 # Used to limit the amount of data provided to the GP modelling as run
@@ -24,16 +24,33 @@ plot_loss: True
 min_delta_loss: 0.0001
 patience: 20
 
+# GPR model sampling step.
+# The step size in angstrom used to construct the x values of the model.
+# np.arange is used with the min and max of the observed spectrum,
+# and the step given here.
+# WARNING: Reducing the step size will increase run time.
+gpr_model_sampling_step: 15
+
 # Host galaxy removal
 # host_gal_removal: Should the code model the host galaxy contamination and then remove it?
 # fit_wl_bounds: The wavelength range used to fit/model the host galaxy contamination.
 #                If a value is None then the boundary is determined from the min/max of the
 #                common wavelengths of the galaxy eigenspectra and observed spectrum.
 #                Wavelengths must be set within the wavelengths covered by the eigenspectra,
-#                which cover between 3500A and 7500A. 
+#                which cover between 3500A and 7500A.
+# host_gal_removal_plot: Should the host galaxy removal plotting method be called.
 host_gal_removal: True
 fit_wl_bounds: [3500, 7500]  
-
+host_gal_removal_plot: False
 
 # Spectrum Plotting
 plot_tellurics: True
+
+# Normalisation of the spectrum
+# Options are:
+# - "max": Spectrum is normalised such that the maximum flux is 1.
+# - "flux_at_wl": Spectrum is normalised such that the flux at the given
+#                 wavelength is 1.
+#                 NOTE: Must also provide a value for the wavelength in angstrom)
+Normalisation_method: "max"
+Normalisation_wavelength: None
