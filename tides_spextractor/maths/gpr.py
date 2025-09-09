@@ -98,11 +98,15 @@ def make_model(data, keys=["x", "y", "y_err"], gp_training_iterations=100,
     return model, likelihood
 
 
-def model_values(model, likelihood, data, keys=["x", "y", "y_err"], **kwargs):
+def model_values(model, likelihood, data, keys=["x", "y", "y_err"],
+                 gpr_model_sampling_step=1, **kwargs):
 
     device = next(model.parameters()).device  # Get the model's device (GPU/CPU)
 
-    x = convert_np_to_tensor(data[keys[0]].value).to(device)  # Move to device
+    new_x = np.arange(min(data[keys[0]].value),
+                      max(data[keys[0]].value) + gpr_model_sampling_step,
+                      gpr_model_sampling_step)
+    x = convert_np_to_tensor(new_x).to(device)  # Move to device
 
     # Predict
     with torch.no_grad():
@@ -111,9 +115,10 @@ def model_values(model, likelihood, data, keys=["x", "y", "y_err"], **kwargs):
             likelihood.eval()
             pred = likelihood(model(x))
 
+    x = new_x * data[keys[0]].unit
     y = np.asarray(pred.mean.detach().cpu().numpy()).flatten() * data[keys[1]].unit
     y_err = np.asarray(pred.stddev.detach().cpu().numpy()).flatten() * data[keys[2]].unit
 
-    model_spec = QTable(data=[data[keys[0]], y, y_err],
+    model_spec = QTable(data=[x, y, y_err],
                         names=[keys[0], keys[1], keys[2]])
     return model_spec
