@@ -18,8 +18,8 @@ from astropy.table import MaskedColumn, QTable
 from warnings import warn
 
 
-def remove_nans(spec):
-    mask = ~np.isnan(spec["wave"]) * ~np.isnan(spec["flux"]) * ~np.isnan(spec["flux_err"])
+def remove_nans(spec, keys=["x", "y", "y_err"], **kwargs):
+    mask = ~np.isnan(spec[keys[0]]) * ~np.isnan(spec[keys[1]]) * ~np.isnan(spec[keys[2]])
     return spec[mask]
 
 
@@ -31,24 +31,24 @@ def remove_masked_values(spec):
         return spec[mask]
 
 
-def remove_negative_flux(spec):
-    mask = spec["flux"] >= 0
+def remove_negative_flux(spec, keys=["x", "y", "y_err"], **kwargs):
+    mask = spec[keys[1]] >= 0
     return spec[mask]
 
 
-def remove_zero_flux(spec):
-    mask = spec["flux"] != 0
+def remove_zero_flux(spec, keys=["x", "y", "y_err"], **kwargs):
+    mask = spec[keys[1]] != 0
     return spec[mask]
 
 
 def clean_spectrum(spec, remove_negative_fluxes=True, remove_zero_fluxes=True, **kwargs):
-    spec = remove_nans(spec)
+    spec = remove_nans(spec, **kwargs)
     spec = remove_masked_values(spec)
 
     if remove_negative_fluxes is True:
-        spec = remove_negative_flux(spec)
+        spec = remove_negative_flux(spec, **kwargs)
     if remove_zero_fluxes is True:
-        spec = remove_zero_flux(spec)
+        spec = remove_zero_flux(spec, **kwargs)
 
     return spec
 
@@ -76,13 +76,13 @@ def remove_tellurics(spec, telluric_path=None, z=None, **kwargs):
     return spec
 
 
-def deredden_spectrum(spec, mwebv, ebv, rv=3.1):
+def deredden_spectrum(spec, mwebv, ebv, rv=3.1, **kwargs):
 
     if mwebv is not None:
-        spec = extinction.deredden(spec, mwebv, rv)
+        spec = extinction.deredden(spec, mwebv, rv, **kwargs)
 
     if ebv is not None:
-        spec = extinction.deredden(spec, ebv, rv)
+        spec = extinction.deredden(spec, ebv, rv, **kwargs)
 
     return spec
 
@@ -96,13 +96,13 @@ def deredshift_spectrum(spec, z, keys=["x"], **kwargs):
     return spec
 
 
-def prune_spectrum(spec, min_wavelength=None, max_wavelength=None):
+def prune_spectrum(spec, min_wavelength=None, max_wavelength=None, 
+                   keys=["x", "y", "y_err"], **kwargs):
     if min_wavelength is None:
-        min_wavelength = min(spec["wave"])
+        min_wavelength = min(spec[keys[0]])
     if max_wavelength is None:
-        max_wavelength = max(spec["wave"])
-
-    mask = (spec["wave"] >= min_wavelength) & (spec["wave"] <= max_wavelength)
+        max_wavelength = max(spec[keys[0]])
+    mask = (spec[keys[0]] >= min_wavelength) & (spec[keys[0]] <= max_wavelength)
     return spec[mask]
 
 
@@ -119,28 +119,29 @@ def remove_outliers(spec):
     return spec[mask] 
     
 
-def normalise_spectrum(spec, normalisation_method="max", normalisation_wavelength=None, **kwargs):
+def normalise_spectrum(spec, normalisation_method="max", normalisation_wavelength=None,
+                       keys=["x", "y", "y_err"], **kwargs):
     if normalisation_method == "max":
-        val = max(spec["flux"])
+        val = max(spec[keys[1]])
     elif normalisation_method == "flux_at_wl":
         if normalisation_wavelength is None:
             warn("No normalisation wavelength provided. Normalisation skipped!")
             return spec
         else:
             # Case where the desired wavelength is in the data array
-            mask = spec["wave"] == normalisation_wavelength
+            mask = spec[keys[0]] == normalisation_wavelength
             if np.sum(mask) == 1:
-                val = spec["flux"][mask][0]
+                val = spec[keys[1]][mask][0]
             # Case where desired wavelength is in the data array more than once
             elif np.sum(mask) > 1:
                 raise ValueError("Duplicate wavelengths exist in the spectrum data.")
             # Case where the desired wavelength isnt in the data array.
             # Interpolate the flux from the nearest neighbours.
             else:
-                lower_ind, upper_ind = find_neighbours(spec["wave"], normalisation_wavelength)
-                if lower_ind is not None and upper_ind is not None: 
-                    val = interpolate_linear(spec["wave"][[lower_ind, upper_ind]],
-                                             spec["flux"][[lower_ind, upper_ind]],
+                lower_ind, upper_ind = find_neighbours(spec[keys[0]], normalisation_wavelength)
+                if lower_ind is not None and upper_ind is not None:
+                    val = interpolate_linear(spec[keys[0]][[lower_ind, upper_ind]],
+                                             spec[keys[1]][[lower_ind, upper_ind]],
                                              normalisation_wavelength)
                 else:
                     warn("Normalisation wavelength provided is not within the wavelength range of the spectrum. "
@@ -150,8 +151,8 @@ def normalise_spectrum(spec, normalisation_method="max", normalisation_wavelengt
         warn(f"Normalisation method '{normalisation_method}' is not a valid method. "
              "Must be either 'max' or 'flux_at_wl'. Normalisation skipped!")
 
-    spec["flux"] = normalise_data(spec["flux"], val.value)
-    spec["flux_err"] = normalise_data(spec["flux_err"], val.value)
+    spec[keys[1]] = normalise_data(spec[keys[1]], val.value)
+    spec[keys[2]] = normalise_data(spec[keys[2]], val.value)
 
     return spec
 
