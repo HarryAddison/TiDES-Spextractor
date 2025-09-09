@@ -62,29 +62,36 @@ def load_config(initfile=None):
     return config
 
 
-def read_spec(fn, file_format, keys=["x", "y", "y_err"], **kwargs):
+def read_spec(fn, file_format, keys, **kwargs):
     if isinstance(fn, str) and isinstance(file_format, str):
         spec = QTable.read(fn, format=file_format)
-        spec.rename_columns([keys[0], keys[1], keys[2]], ["wave", "flux", "flux_err"])
-        return spec
+
+        # Ensure data is in row format and not single arrays in each column.
+        if hasattr(spec[keys[0]][0], '__len__') and not isinstance(spec[keys[0]][0], str):
+            # Data in arrays. Flatten all columns.
+            flat_cols = [spec[col][0] for col in spec.colnames]
+            spec = QTable(flat_cols, names=spec.colnames)
+            return spec
+        else:
+            return spec
     elif isinstance(fn, str) is False:
         raise TypeError("The filename provided is not a string.")
     elif isinstance(file_format, str) is False:
         raise TypeError("The filename provided is not a string.")
 
 
-def obtain_spec(fn, file_format, **kwargs):
-    spec = read_spec(fn, file_format, **kwargs)
+def obtain_spec(fn, file_format, keys=["x", "y", "y_err"], **kwargs):
+    spec = read_spec(fn, file_format, keys=keys, **kwargs)
 
-    if spec["wave"].unit == u.nm:
-        spec["wave"] = nm_to_A(spec["wave"])
-    elif spec["wave"].unit != u.Angstrom:
+    if spec[keys[0]].unit == u.nm:
+        spec[keys[0]] = nm_to_A(spec["wave"])
+    elif spec[keys[0]].unit != u.Angstrom:
         raise u.core.UnitTypeError("Incompatible wavelength units. Spectrum wavelengths must be in nm or Angstrom.")
 
     flux_unit = u.erg / (u.Angstrom * u.s * u.cm * u.cm)
-    if spec["flux"].unit != flux_unit:
+    if spec[keys[1]].unit != flux_unit:
         raise u.core.UnitTypeError(f"Incompatiple flux units. Spectrum flux must be in {flux_unit}.")
-    if spec["flux_err"].unit != flux_unit:
+    if spec[keys[2]].unit != flux_unit:
         raise u.core.UnitTypeError(f"Incompatiple flux error units. Spectrum flux error must be in {flux_unit}.")
 
     return spec
