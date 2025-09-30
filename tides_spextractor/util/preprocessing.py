@@ -5,7 +5,7 @@ Created: 17/02/2025
 Functions for preprocessing the spectrum.
 '''
 
-import importlib_resources
+import importlib.resources
 import numpy as np
 from tides_spextractor.physics import extinction
 from tides_spextractor.physics import doppler
