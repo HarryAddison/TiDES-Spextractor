@@ -67,13 +67,19 @@ def read_spec(fn, file_format, keys, **kwargs):
         spec = QTable.read(fn, format=file_format)
 
         # Ensure data is in row format and not single arrays in each column.
-        if hasattr(spec[keys[0]][0], '__len__') and not isinstance(spec[keys[0]][0], str):
-            # Data in arrays. Flatten all columns.
-            flat_cols = [spec[col][0] for col in spec.colnames]
-            spec = QTable(flat_cols, names=spec.colnames)
+        if len(spec) == 1:
+            if len(spec[keys[0]]) == 1:
+                if spec[keys[0]].shape[1] > 1:
+                    # Data in arrays. Flatten all columns.
+                    flat_cols = [spec[col][0] for col in spec.colnames]
+                    spec = QTable(flat_cols, names=spec.colnames)
+                    return spec
+                else:
+                    raise ValueError("Spectrum contains none or one data points")
+        elif len(spec) > 1:
             return spec
         else:
-            return spec
+            raise ValueError("No spectrum data available.")
     elif isinstance(fn, str) is False:
         raise TypeError("The filename provided is not a string.")
     elif isinstance(file_format, str) is False:
