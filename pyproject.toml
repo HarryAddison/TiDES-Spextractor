@@ -7,7 +7,7 @@ authors = [
 keywords = ["TiDES", "Spectra"]
 description = "TiDES SN spectral analysis"
 readme = {file = "README.rst", content-type = "text/x-rst"}
-dependencies = ["astropy", "extinction", "matplotlib", "numpy", "PyYAML", "host_removal"]
+dependencies = ["astropy", "dustmaps", "extinction", "gpytorch", "host_removal", "matplotlib", "numpy<=1.26.4", "PyYAML", "torch"]
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-doctestplus"]

@@ -1,1 +1,9 @@
-
+astropy
+dustmaps
+extinction
+gpytorch
+host_removal
+matplotlib
+numpy<=1.26.4
+PyYAML
+torch
