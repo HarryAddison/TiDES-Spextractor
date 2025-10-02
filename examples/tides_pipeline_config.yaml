@@ -1,6 +1,9 @@
+# Output save directory
+output_dir: "./outputs"
+
 # Keys relating to the spectrum table columns
 # Must be in the order: wavelength, flux, flux err
-keys: ["WAVE", "FLUX", "ERR_FLUX"] # ["wave", "flux", "flux_err"]
+keys:  ["wave", "flux", "flux_err"] # ["WAVE", "FLUX", "ERR_FLUX"] #
 
 # What is the maximum number of data points allowed in the spectrum.
 # Used to limit the amount of data provided to the GP modelling as run
@@ -14,7 +17,11 @@ preprocess_binning_width: 15
 
 # Number of training iterations that the GP model should do.
 gp_training_iterations: 2000
-plot_loss: True
+
+# Should the loss plot for the GP training interations be shown and saved?
+# If save is True then the plots are saved to the directory given by the "output_dir"
+loss_plot_show: False
+loss_plot_save: True
 
 # GP model optimisation early stop parameters
 # min_delta_loss: The threshold at which to define no significant improvement
@@ -38,10 +45,13 @@ gpr_model_sampling_step: 15
 #                common wavelengths of the galaxy eigenspectra and observed spectrum.
 #                Wavelengths must be set within the wavelengths covered by the eigenspectra,
 #                which cover between 3500A and 7500A.
-# host_gal_removal_plot: Should the host galaxy removal plotting method be called.
+# host_gal_removal_plot_show: Should the host galaxy removal plot be shown?.
+# host_gal_removal_plot_save: Should the host galaxy removal plot be saved?
+#                             If True, plot is saved to the directory given by the "output_dir".
 host_gal_removal: True
 fit_wl_bounds: [3500, 7500]  
-host_gal_removal_plot: False
+host_gal_removal_plot_show: False
+host_gal_removal_plot_save: True
 
 # Spectrum Plotting
 plot_tellurics: True
@@ -54,3 +64,10 @@ plot_tellurics: True
 #                 NOTE: Must also provide a value for the wavelength in angstrom)
 Normalisation_method: "max"
 Normalisation_wavelength: None
+
+# Analysed spectrum plot
+# analysed_spectrum_plot_show: Should the plot of the analysed spectrum be shown?
+analysed_spectrum_plot_save: Should the plot of the analysed spectrum be saved?
+                             If True, plot is saved to the directory given by the "output_dir".
+analysed_spectrum_plot_show: True
+analysed_spectrum_plot_save: True

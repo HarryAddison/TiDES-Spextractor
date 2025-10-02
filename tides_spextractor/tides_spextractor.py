@@ -14,13 +14,15 @@ from tides_spextractor.util.plotting import *
 from tides_spextractor.util.preprocessing import *
 from tides_spextractor.util.spectral_tools import *
 from host_removal import HostGalaxyRemoval
+from pathlib import Path
 
 
 class SN:
 
-    def __init__(self, sn_type, z=None, ra=None, dec=None, mwebv=None, ebv=None,
+    def __init__(self, sn_id, sn_type, z=None, ra=None, dec=None, mwebv=None, ebv=None,
                  phase=None, rest_phase=None, config=None):
 
+        self.sn_id = sn_id
         self.sn_type = sn_type
         self.z = z
         self.ra = ra
@@ -42,18 +44,19 @@ class SN:
                 self.rest_phase = self.phase / (1 + self.z)
 
 
-    def add_spectrum(self, fn, **kwargs):
+    def add_spectrum(self, spec_id, fn, **kwargs):
         '''
         '''
-        self.spectra.append(Spectrum(self, fn, **kwargs))
+        self.spectra.append(Spectrum(self, spec_id, fn, **kwargs))
 
 
 
 class Spectrum:
 
-    def __init__(self, sn_instance, fn, file_format="fits", min_wavelength=None,
+    def __init__(self, sn_instance, spec_id, fn, file_format="fits", min_wavelength=None,
                  max_wavelength=None, **kwargs):
 
+        self.spec_id = spec_id
         self.sn_instance = sn_instance
         self.data = obtain_spec(fn, file_format, **self.config)
 
@@ -122,7 +125,7 @@ class Spectrum:
         kwargs = {**self.config, **kwargs}
 
         self.ds_data = self._check_spec_size(self.data, **kwargs)
-        self.gpr_model, self.gpr_kernel = make_model(self.ds_data, **kwargs)
+        self._make_model(**kwargs)
         self.model_data = model_values(self.gpr_model, self.gpr_kernel, self.ds_data, **kwargs)
 
         if kwargs["host_gal_removal"]:
@@ -166,6 +169,48 @@ class Spectrum:
         plt.ylabel("Normalised flux")
         plt.xlim((self.min_rest_wl.value - 100), (self.max_rest_wl.value + 100))
         plt.ylim(0, 1.1)
+
+        if kwargs["analysed_spectrum_plot_save"]:
+            if kwargs["output_dir"] != None:
+                if Path(kwargs["output_dir"]).exists():
+                    save_dir = Path(f"{kwargs['output_dir']}/analysed_spectrum_plots/")
+                    if save_dir.exists() is False:
+                        warn("Creating save directory for analysed spectrum plots.\n"
+                             f"Directory created at: {save_dir}")
+                        save_dir.mkdir(parents=False)
+                    plt.savefig(f"{save_dir}/sn_{self.sn_id}_spectrum_{self.spec_id}.pdf", bbox_inches="tight")
+                else:
+                    warn(f"Output directory, '{kwargs['''output_dir''']}', does not exist. Skipping saving of the plot!")
+            else:
+                warn("Analysed spectrum plot saving requested but no save directory was provided. Skipping saving of the plot!")
+        if kwargs["analysed_spectrum_plot_show"]:
+            plt.show()
+        plt.close()
+
+
+    def _make_model(self, output_dir=None, **kwargs):
+        if kwargs["loss_plot_show"] or kwargs["loss_plot_save"]:
+            plot_loss = True
+        else:
+            plot_loss = False
+        self.gpr_model, self.gpr_kernel = make_model(self.ds_data, plot_loss=plot_loss, **kwargs)
+        
+        if kwargs["loss_plot_save"]:
+            if output_dir != None:
+                if Path(output_dir).exists():
+                    save_dir = Path(f"{output_dir}/gpr_loss_plots/")
+                    if save_dir.exists() is False:
+                        warn("Creating save directory for Gaussian proccess training loss plots.\n"
+                             f"Directory created at: {save_dir}")
+                        save_dir.mkdir(parents=False)
+                    plt.savefig(f"{save_dir}/sn_{self.sn_id}_spectrum_{self.spec_id}.pdf", bbox_inches="tight")
+                else:
+                    warn(f"Output directory, '{output_dir}', does not exist. Skipping saving of the plot!")
+            else:
+                warn("Gaussian process training loss plot saving requested but no save directory was provided. Skipping saving of the plot!")
+        if kwargs["loss_plot_show"]:
+            plt.show()
+        plt.close()
 
 
     def _setup_spectral_features(self, **kwargs):
@@ -217,12 +262,29 @@ class Spectrum:
                     self.features["pew_err"][i] = pew_err
 
 
-    def _remove_host_galaxy(self, host_gal_removal_plot=False, **kwargs):
+    def _remove_host_galaxy(self, host_gal_removal_plot_show=False,
+                            host_gal_removal_plot_save=True, output_dir=None,
+                            **kwargs):
         hgr = HostGalaxyRemoval(self.model_data, self.rest_phase.value, **kwargs)
         hgr.fit_spectrum()
         hgr.remove_galaxy_contamination()
-        if host_gal_removal_plot:
-            hgr.plot_fit(show=True)
-
+        if host_gal_removal_plot_show or host_gal_removal_plot_save:
+            hgr.plot_fit(show=False)  # Can't use internal show as saving won't work.
+            if host_gal_removal_plot_save:
+                if output_dir != None:
+                    if Path(output_dir).exists():
+                        save_dir = Path(f"{output_dir}/galaxy_removal_figures/")
+                        if save_dir.exists() is False:
+                            warn("Creating save directory for Gaussian proccess training loss plots.\n"
+                                f"Directory created at: {save_dir}")
+                            save_dir.mkdir(parents=False)
+                        plt.savefig(f"{save_dir}/sn_{self.sn_id}_spectrum_{self.spec_id}.pdf", bbox_inches="tight")
+                    else:
+                        warn(f"Output directory, '{output_dir}', does not exist. Skipping saving of the plot!")
+                else:
+                    warn("Host galaxy removal plot saving requested but no save directory was provided. Skipping saving of the plot!")
+            if host_gal_removal_plot_show:
+                plt.show()  # Show must come after saving.
+            plt.close()
         self.model_data = hgr.sn_spec_no_host
         self.gal_model_eigenvals = hgr.gal_eigenvals

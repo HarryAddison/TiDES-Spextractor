@@ -24,7 +24,6 @@ class ExactGPModel(gpytorch.models.ExactGP):
         self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.AdditiveKernel(gpytorch.kernels.ScaleKernel(kernel_mat52),
                                                                                          gpytorch.kernels.ScaleKernel(kernel_rbf)))
 
-
     def forward(self, x):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
@@ -93,7 +92,6 @@ def make_model(data, keys=["x", "y", "y_err"], gp_training_iterations=100,
         plt.plot(losses, c="k")
         plt.xlabel("Iteration")
         plt.ylabel("Loss")
-        # plt.show()
 
     return model, likelihood
 
