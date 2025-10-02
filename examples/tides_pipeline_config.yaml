@@ -67,7 +67,7 @@ Normalisation_wavelength: None
 
 # Analysed spectrum plot
 # analysed_spectrum_plot_show: Should the plot of the analysed spectrum be shown?
-analysed_spectrum_plot_save: Should the plot of the analysed spectrum be saved?
-                             If True, plot is saved to the directory given by the "output_dir".
+# analysed_spectrum_plot_save: Should the plot of the analysed spectrum be saved?
+#                              If True, plot is saved to the directory given by the "output_dir".
 analysed_spectrum_plot_show: True
 analysed_spectrum_plot_save: True
