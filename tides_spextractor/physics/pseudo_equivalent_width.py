@@ -21,18 +21,18 @@ def calc_pew(data, continuum_data, model, keys=["x", "y", "y_err"], **kwargs):
 def _calc_integration_pew_err(data, continuum_data, keys=["x", "y", "y_err"], **kwargs):
 
     integrand_err = data[keys[2]] / continuum_data[keys[1]]
-    n_intervals = len(integrand_err) - 1
+    n_points = len(integrand_err)
 
-    if len(data) < 2:
+    if n_points < 2:
         raise ValueError("Not enough values provided to calculate simpson's error."
                          "Atleast 2 data points are required.")
-    elif n_intervals % 2 == 1:
-        pew_err = calc_simpson_odd_interval_error(data[keys[0]], integrand_err)
-    elif n_intervals % 2 == 0:
-        if len(data) == 2:
+    if n_points % 2 == 0:  # Odd number of intervals
+        if n_points == 2:  # Integral = trapzium area.
             pew_err = calc_simpson_2_points_error(data[keys[0]], integrand_err)
-        else:
-            pew_err = calc_simspon_even_interval_error(data[keys[0]], integrand_err)
+        else:  # Integral = odd interval simpson rule
+            pew_err = calc_simpson_odd_interval_error(data[keys[0]], integrand_err)
+    else:  # Integral = even interval simpson rule
+        pew_err = calc_simspon_even_interval_error(data[keys[0]], integrand_err)
     return pew_err
 
 
