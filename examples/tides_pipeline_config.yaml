@@ -1,3 +1,9 @@
+# Number of CPUs that pytorch / GPYtorch can use.
+# If - "default": Default number of CPUs is used.
+#    - "max": Maximum number of CPUs available on system are used.
+#    - integer value (e.g "10"): Number of CPUs is set to the value given. 
+n_cpu: max
+
 # Output save directory
 output_dir: "./outputs"
 

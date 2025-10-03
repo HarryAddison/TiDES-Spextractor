@@ -2,6 +2,8 @@
 Author: Harry Addison
 Created: 17/02/2025
 '''
+import os
+import torch
 
 from tides_spextractor.maths.gpr import *
 from tides_spextractor.maths.interpolation import downsample_spec_data, bin_spec_data
@@ -43,12 +45,23 @@ class SN:
             if self.phase is not None:
                 self.rest_phase = self.phase / (1 + self.z)
 
+        self._set_torch_cpus(**self.config)
+
 
     def add_spectrum(self, spec_id, fn, **kwargs):
         '''
         '''
         self.spectra.append(Spectrum(self, spec_id, fn, **kwargs))
 
+    def _set_torch_cpus(self, n_cpu=None, **kwargs):
+        if n_cpu == "default" or n_cpu is None:  # Leave as the default number of CPUs.
+            n_cpu = torch.get_num_threads()
+        elif n_cpu == "max":  # Set to CPUs on system
+            n_cpu = os.cpu_count()
+        if type(n_cpu) != int:
+            raise TypeError("Provided number of CPUs to be used must be an "
+                            f"integer but {n_cpu} of type {type(n_cpu)} was provided.")
+        torch.set_num_threads(n_cpu)
 
 
 class Spectrum:
