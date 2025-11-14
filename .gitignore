@@ -1,4 +1,5 @@
 .git/
+.envrc
 
 # package building / other 
 __pycache__/
