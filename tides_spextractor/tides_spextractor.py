@@ -299,5 +299,5 @@ class Spectrum:
             if host_gal_removal_plot_show:
                 plt.show()  # Show must come after saving.
             plt.close()
-        self.model_data = hgr.sn_spec_no_host
+        self.model_data = hgr.obs_spec_gal_subtracted
         self.gal_model_eigenvals = hgr.gal_eigenvals
