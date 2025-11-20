@@ -299,5 +299,8 @@ class Spectrum:
             if host_gal_removal_plot_show:
                 plt.show()  # Show must come after saving.
             plt.close()
-        self.model_data = hgr.obs_spec_gal_subtracted
+
+        # Need to run the host subtracted spectrum through GPR again to "smooth" the spectrum
+        gpr_model, gpr_kernel = make_model(hgr.obs_spec_gal_subtracted, plot_loss=False, **kwargs)
+        self.model_data = model_values(gpr_model, gpr_kernel, hgr.obs_spec_gal_subtracted, **kwargs)
         self.gal_model_eigenvals = hgr.gal_eigenvals
