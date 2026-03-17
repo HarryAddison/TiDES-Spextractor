@@ -125,8 +125,8 @@ class Spectrum:
         self.data.sort(keys=kwargs["keys"])
         self.data = prune_spectrum(self.data, self.min_wl, self.max_wl, **kwargs)
         # self.data = remove_tellurics(self.data, **kwargs)
-        self.data = deredshift_spectrum(self.data, self.z, **kwargs)
         self.data = deredden_spectrum(self.data, self.mwebv, self.ebv, **kwargs)
+        self.data = deredshift_spectrum(self.data, self.z, **kwargs)
         self.min_rest_wl, self.max_rest_wl = min(self.data[kwargs["keys"][0]]), max(self.data[kwargs["keys"][0]])
         # self.data = remove_outliers(self.data)
         if kwargs["preprocess_binning"] == True:
