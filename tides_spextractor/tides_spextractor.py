@@ -298,8 +298,8 @@ class Spectrum:
 
     def _check_spec_size(self, data, points_limit=4000, **kwargs):
         if len(data) > points_limit:
-            ds_factor = int(len(data) / points_limit)
-            return downsample_spec_data(data, ds_factor, **kwargs)
+            indices = np.linspace(0, len(data) - 1, points_limit, dtype=int)
+            return data[indices]
         else:
             return data
 
