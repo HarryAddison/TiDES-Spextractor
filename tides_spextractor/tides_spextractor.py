@@ -15,6 +15,7 @@ from tides_spextractor.util.input_output import *
 from tides_spextractor.util.plotting import *
 from tides_spextractor.util.preprocessing import *
 from tides_spextractor.util.spectral_tools import *
+from astropy.table import QTable, MaskedColumn
 from host_removal import HostGalaxyRemoval
 from pathlib import Path
 
@@ -137,12 +138,57 @@ class Spectrum:
         # Overwrite/combine the config kwargs with those defined in the function call.
         kwargs = {**self.config, **kwargs}
 
-        self.ds_data = self._check_spec_size(self.data, **kwargs)
-        self._make_model(**kwargs)
-        self.model_data = model_values(self.gpr_model, self.gpr_kernel, self.ds_data, **kwargs)
-
+        
         if kwargs["host_gal_removal"]:
+
+            ds_data = self._check_spec_size(self.data, **kwargs)
+
+            mask = (((ds_data[kwargs["keys"][0]].value < (6563 + 15)) & (ds_data[kwargs["keys"][0]].value > (6563 - 15))) |  # H alpha
+                ((ds_data[kwargs["keys"][0]].value < (4861 + 15)) & (ds_data[kwargs["keys"][0]].value > (4861 - 15))) |  # H beta
+                ((ds_data[kwargs["keys"][0]].value < (4340 + 15)) & (ds_data[kwargs["keys"][0]].value > (4340 - 15))) |  # H Gamma
+                ((ds_data[kwargs["keys"][0]].value < (5007 + 15)) & (ds_data[kwargs["keys"][0]].value > (5007 - 15))) |  # OIII
+                ((ds_data[kwargs["keys"][0]].value < (4959 + 15)) & (ds_data[kwargs["keys"][0]].value > (4959 - 15))))  # OIII
+        
+            self.ds_data = ds_data[~mask]
+            self._make_model(**kwargs)
+            model_data = model_values(self.gpr_model, self.gpr_kernel, ds_data, **kwargs)
+            self.model_data = QTable()
+        
+            w = MaskedColumn(np.ma.masked_all(len(ds_data)), name='wave', unit=ds_data["wave"].unit)
+            f = MaskedColumn(np.ma.masked_all(len(ds_data)), name='flux', unit=ds_data["flux"].unit)
+            f_err = MaskedColumn(np.ma.masked_all(len(ds_data)), name='flux_err', unit=ds_data["flux_err"].unit)
+            
+            w[~mask] = model_data[~mask]['wave']
+            w[mask] = ds_data[mask]["wave"]
+            f[~mask] = model_data[~mask]['flux']
+            f[mask] = ds_data[mask]["flux"]
+            f_err[~mask] = model_data[~mask]['flux_err']
+            f_err[mask] = ds_data[mask]["flux_err"]
+
+            self.model_data["wave"] = w
+            self.model_data["flux"] = f
+            self.model_data["flux_err"] = f_err
+
+            plt.figure()
+            plot_spec_with_err(self.data, alphas=[0.4, 0.3], color="k",
+                            label="Processed Spectrum", z_orders=[2, 1], **kwargs)
+            plot_spec_with_err(self.ds_data, alphas=[0.2, 0.1], color="blue",
+                            label="Downsampled Spectrum", z_orders=[4, 3], **kwargs)
+            plot_spec_with_err(self.model_data, plot_type="line", alphas=[1, 0.3], color="red",
+                            label="Model Spectrum", z_orders=[6, 5], **kwargs)
+            plt.legend()
+            plt.xlabel(r"$\rm{Rest~Frame~Wavelength}~(\AA)$")
+            plt.ylabel("Normalised flux")
+            plt.xlim((self.min_rest_wl.value - 100), (self.max_rest_wl.value + 100))
+            plt.ylim(0, 1.1)
+            save_dir = Path(f"{kwargs['output_dir']}/analysed_spectrum_plots/")
+            plt.savefig(f"{save_dir}/sn_{self.sn_id}_spectrum_2.pdf", bbox_inches="tight")
+
             self._remove_host_galaxy(**kwargs)
+        else:
+            self.ds_data = self._check_spec_size(self.data, **kwargs)
+            self._make_model(**kwargs)
+            self.model_data = model_values(self.gpr_model, self.gpr_kernel, ds_data, **kwargs)
 
 
     def measure_properties(self, **kwargs):
