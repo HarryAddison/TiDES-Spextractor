@@ -141,34 +141,20 @@ class Spectrum:
         
         if kwargs["host_gal_removal"]:
 
-            ds_data = self._check_spec_size(self.data, **kwargs)
+            self.ds_data = self._check_spec_size(self.data, **kwargs)
 
-            mask = (((ds_data[kwargs["keys"][0]].value < (6563 + 15)) & (ds_data[kwargs["keys"][0]].value > (6563 - 15))) |  # H alpha
-                ((ds_data[kwargs["keys"][0]].value < (4861 + 15)) & (ds_data[kwargs["keys"][0]].value > (4861 - 15))) |  # H beta
-                ((ds_data[kwargs["keys"][0]].value < (4340 + 15)) & (ds_data[kwargs["keys"][0]].value > (4340 - 15))) |  # H Gamma
-                ((ds_data[kwargs["keys"][0]].value < (5007 + 15)) & (ds_data[kwargs["keys"][0]].value > (5007 - 15))) |  # OIII
-                ((ds_data[kwargs["keys"][0]].value < (4959 + 15)) & (ds_data[kwargs["keys"][0]].value > (4959 - 15))))  # OIII
-        
-            self.ds_data = ds_data[~mask]
+            # Mask out strong galaxy emission regions from data used to produce model.
+            mask = (((self.ds_data[kwargs["keys"][0]].value < (6563 + 15)) & (self.ds_data[kwargs["keys"][0]].value > (6563 - 15))) |  # H alpha
+                    ((self.ds_data[kwargs["keys"][0]].value < (4861 + 15)) & (self.ds_data[kwargs["keys"][0]].value > (4861 - 15))) |  # H beta
+                    ((self.ds_data[kwargs["keys"][0]].value < (4340 + 15)) & (self.ds_data[kwargs["keys"][0]].value > (4340 - 15))) |  # H Gamma
+                    ((self.ds_data[kwargs["keys"][0]].value < (5007 + 15)) & (self.ds_data[kwargs["keys"][0]].value > (5007 - 15))) |  # OIII
+                    ((self.ds_data[kwargs["keys"][0]].value < (4959 + 15)) & (self.ds_data[kwargs["keys"][0]].value > (4959 - 15))))  # OIII
+            self.ds_data = self.ds_data[~mask]
+
             self._make_model(**kwargs)
-            model_data = model_values(self.gpr_model, self.gpr_kernel, ds_data, **kwargs)
-            self.model_data = QTable()
-        
-            w = MaskedColumn(np.ma.masked_all(len(ds_data)), name='wave', unit=ds_data["wave"].unit)
-            f = MaskedColumn(np.ma.masked_all(len(ds_data)), name='flux', unit=ds_data["flux"].unit)
-            f_err = MaskedColumn(np.ma.masked_all(len(ds_data)), name='flux_err', unit=ds_data["flux_err"].unit)
-            
-            w[~mask] = model_data[~mask]['wave']
-            w[mask] = ds_data[mask]["wave"]
-            f[~mask] = model_data[~mask]['flux']
-            f[mask] = ds_data[mask]["flux"]
-            f_err[~mask] = model_data[~mask]['flux_err']
-            f_err[mask] = ds_data[mask]["flux_err"]
+            self.model_data = model_values(self.gpr_model, self.gpr_kernel, self.ds_data, **kwargs)
 
-            self.model_data["wave"] = w
-            self.model_data["flux"] = f
-            self.model_data["flux_err"] = f_err
-
+            # TODO: Remove Plotting: used for debugging purposes/
             plt.figure()
             plot_spec_with_err(self.data, alphas=[0.4, 0.3], color="k",
                             label="Processed Spectrum", z_orders=[2, 1], **kwargs)
@@ -188,7 +174,7 @@ class Spectrum:
         else:
             self.ds_data = self._check_spec_size(self.data, **kwargs)
             self._make_model(**kwargs)
-            self.model_data = model_values(self.gpr_model, self.gpr_kernel, ds_data, **kwargs)
+            self.model_data = model_values(self.gpr_model, self.gpr_kernel, self.ds_data, **kwargs)
 
 
     def measure_properties(self, **kwargs):
@@ -297,6 +283,10 @@ class Spectrum:
 
 
     def _check_spec_size(self, data, points_limit=4000, **kwargs):
+        '''
+        If more data points than the limit then sample the data at even intervals,
+        always including the first and last data points.
+        '''
         if len(data) > points_limit:
             indices = np.linspace(0, len(data) - 1, points_limit, dtype=int)
             return data[indices]
