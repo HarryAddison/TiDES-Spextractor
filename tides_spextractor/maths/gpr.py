@@ -19,7 +19,7 @@ class ExactGPModel(gpytorch.models.ExactGP):
         self.mean_module = gpytorch.means.ConstantMean()
 
         kernel_rbf = gpytorch.kernels.RBFKernel(lengthscale_constraint=gpytorch.constraints.Interval(100, 200))
-        kernel_mat52 = gpytorch.kernels.MaternKernel(nu=2.5, lengthscale_constraint=gpytorch.constraints.Interval(5, 10))
+        kernel_mat52 = gpytorch.kernels.MaternKernel(nu=2.5, lengthscale_constraint=gpytorch.constraints.Interval(1, 10))
 
         self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.AdditiveKernel(gpytorch.kernels.ScaleKernel(kernel_mat52),
                                                                                          gpytorch.kernels.ScaleKernel(kernel_rbf)))
@@ -98,7 +98,6 @@ def make_model(data, keys=["x", "y", "y_err"], gp_training_iterations=100,
 
 def model_values(model, likelihood, data, keys=["x", "y", "y_err"],
                  gpr_model_sampling_step=1, **kwargs):
-
     device = next(model.parameters()).device  # Get the model's device (GPU/CPU)
 
     new_x = np.arange(min(data[keys[0]].value),
